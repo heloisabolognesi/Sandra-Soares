@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Clínica de Estética"
+description = "Sistema web de gestão e agendamento para uma clínica de estética, com painel administrativo e página pública de reservas. Esta primeira etapa é somente frontend, com interações e dados fictícios claramente identificados."
+version = "1.0.0"
+id = "artifacts/clinica-estetica"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19270
+
+[services.development]
+run = "pnpm --filter @workspace/clinica-estetica run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/clinica-estetica", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/clinica-estetica/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19270"
+BASE_PATH = "/"
