@@ -11,7 +11,9 @@ const isoToday = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 };
+const CLINIC_NAME = 'Sandra Soares';
 const datePlus = (n) => { const d = new Date(); d.setDate(d.getDate()+n); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const sandraClient = {id:'sandra-soares',name:'Sandra Soares',phone:'',email:'',birth:'',visits:0,lastVisit:'',notes:''};
 const initialData = {
   clients: [
     {id:1,name:'Mariana Costa',phone:'(11) 98842-1067',email:'mariana.costa@email.com',birth:'1992-04-18',visits:8,lastVisit:datePlus(-8),notes:'Prefere horários no período da manhã.'},
@@ -19,6 +21,7 @@ const initialData = {
     {id:3,name:'Camila Nogueira',phone:'(11) 98112-7406',email:'camila.n@email.com',birth:'1995-07-23',visits:4,lastVisit:datePlus(-21),notes:''},
     {id:4,name:'Fernanda Alves',phone:'(11) 99118-8330',email:'fernanda.a@email.com',birth:'1990-02-09',visits:6,lastVisit:datePlus(-31),notes:''},
     {id:5,name:'Letícia Ribeiro',phone:'(11) 98402-1679',email:'leticia.r@email.com',birth:'1985-09-15',visits:3,lastVisit:datePlus(-47),notes:''},
+    sandraClient,
   ],
   services: [
     {id:1,name:'Limpeza de pele',description:'Limpeza profunda com extração delicada e máscara calmante.',duration:60,price:180,status:'Ativo'},
@@ -28,9 +31,9 @@ const initialData = {
     {id:5,name:'Massagem relaxante',description:'Massagem corporal com movimentos suaves e óleos essenciais.',duration:50,price:195,status:'Inativo'},
   ],
   professionals:[
-    {id:1,name:'Dra. Helena Duarte',role:'Esteticista facial',email:'helena@atelierpele.com',phone:'(11) 98201-0430',color:'#EBC5D2'},
-    {id:2,name:'Bianca Ferreira',role:'Especialista corporal',email:'bianca@atelierpele.com',phone:'(11) 97742-1986',color:'#E5D2A3'},
-    {id:3,name:'Lívia Monteiro',role:'Designer de sobrancelhas',email:'livia@atelierpele.com',phone:'(11) 99405-6631',color:'#D9C9E0'},
+    {id:1,name:'Dra. Helena Duarte',role:'Esteticista facial',email:'helena@example.com',phone:'(11) 98201-0430',color:'#EBC5D2'},
+    {id:2,name:'Bianca Ferreira',role:'Especialista corporal',email:'bianca@example.com',phone:'(11) 97742-1986',color:'#E5D2A3'},
+    {id:3,name:'Lívia Monteiro',role:'Designer de sobrancelhas',email:'livia@example.com',phone:'(11) 99405-6631',color:'#D9C9E0'},
   ],
   appointments:[
     {id:1,client:'Mariana Costa',service:'Limpeza de pele',professional:'Dra. Helena Duarte',date:isoToday(),time:'09:00',status:'Confirmada',price:180},
@@ -58,7 +61,22 @@ const nav = [
 
 function useDemoData() {
   const [data,setData] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('atelier-demo-data')) || initialData; } catch { return initialData; }
+    try {
+      const saved = JSON.parse(localStorage.getItem('atelier-demo-data'));
+      if (!saved) return initialData;
+      const clients = Array.isArray(saved.clients) ? saved.clients : initialData.clients;
+      const professionals = Array.isArray(saved.professionals)
+        ? saved.professionals.map((person) => person.email?.endsWith('@atelierpele.com')
+          ? {...person,email:person.email.replace('@atelierpele.com','@example.com')}
+          : person)
+        : initialData.professionals;
+      return {
+        ...initialData,
+        ...saved,
+        clients: clients.some((client) => client.name === CLINIC_NAME) ? clients : [sandraClient,...clients],
+        professionals,
+      };
+    } catch { return initialData; }
   });
   useEffect(()=>localStorage.setItem('atelier-demo-data',JSON.stringify(data)),[data]);
   const [toast,setToast] = useState(null);
@@ -83,14 +101,14 @@ function App(){
 function AdminShell(){
   const location=useLocation();
  const {notify}=useApp();
-  const current=nav.find(n=>n.to===location.pathname)?.label||'Atelier Pele';
+  const current=nav.find(n=>n.to===location.pathname)?.label||CLINIC_NAME;
   return <div className="app-shell">
     <aside className="sidebar">
-      <div className="brand"><div className="brand-mark"><Flower2 size={21}/></div><div><div className="brand-name">atelier pele</div><div className="brand-sub">gestão estética</div></div></div>
+      <div className="brand"><div className="brand-mark"><Flower2 size={21}/></div><div><div className="brand-name">{CLINIC_NAME}</div><div className="brand-sub">gestão estética</div></div></div>
       <div className="nav-label">Menu principal</div><nav className="nav-list" aria-label="Navegação principal">{nav.map(({to,label,icon:Icon})=><NavLink key={to} to={to} end={to==='/'} className={({isActive})=>`nav-link ${isActive?'active':''}`} data-testid={`link-nav-${label.toLowerCase().replaceAll(' ','-')}`}><Icon/><span>{label}</span></NavLink>)}</nav>
       <div className="sidebar-bottom"><div className="demo-box"><strong>AMBIENTE DE DEMONSTRAÇÃO</strong><p>Dados fictícios salvos somente neste navegador.</p></div><div className="profile-row"><div className="avatar">HD</div><div><div className="profile-name">Helena Duarte</div><div className="profile-role">Administradora</div></div><ChevronDown size={15} style={{marginLeft:'auto',color:'#AA9BA0'}}/></div></div>
     </aside>
-     <main className="main"><header className="topbar"><div className="crumb">Atelier Pele <span style={{padding:'0 8px',color:'#D6C8CC'}}>/</span><b>{current}</b></div><div className="top-actions"><span className="top-date">{new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</span><button className="icon-btn" aria-label="Avisos da demonstração" data-testid="button-notifications" onClick={()=>notify('Você está vendo dados de demonstração.')}><Bell size={16}/></button></div></header><div className="content"><Outlet/></div></main>
+     <main className="main"><header className="topbar"><div className="crumb">{CLINIC_NAME} <span style={{padding:'0 8px',color:'#D6C8CC'}}>/</span><b>{current}</b></div><div className="top-actions"><span className="top-date">{new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</span><button className="icon-btn" aria-label="Avisos da demonstração" data-testid="button-notifications" onClick={()=>notify('Você está vendo dados de demonstração.')}><Bell size={16}/></button></div></header><div className="content"><Outlet/></div></main>
   </div>;
 }
 
@@ -211,7 +229,7 @@ function Professionals(){
  const {data,saveItem,removeItem,notify}=useApp();const [open,setOpen]=useState(false);const [editing,setEditing]=useState(null);
  const save=form=>{const f=new FormData(form);const item={id:editing?.id||Date.now(),name:f.get('name'),role:f.get('role'),email:f.get('email'),phone:f.get('phone'),color:'#EBC5D2'};if(!item.name||!item.role){notify('Informe nome e especialidade.',true);return;}saveItem('professionals',item);setOpen(false);notify(editing?'Profissional atualizado.':'Profissional cadastrado.');};
  const erase=p=>{if(window.confirm(`Remover ${p.name} da equipe?`)){removeItem('professionals',p.id);notify('Profissional removido.');}};
- return <><PageHeading eyebrow="Quem cuida de cada detalhe" title="Profissionais" subtitle="Equipe e especialidades do Atelier Pele." action={<button className="btn" onClick={()=>{setEditing(null);setOpen(true)}} data-testid="button-new-professional"><Plus/>Cadastrar profissional</button>}/>
+ return <><PageHeading eyebrow="Quem cuida de cada detalhe" title="Profissionais" subtitle={`Equipe e especialidades da clínica ${CLINIC_NAME}.`} action={<button className="btn" onClick={()=>{setEditing(null);setOpen(true)}} data-testid="button-new-professional"><Plus/>Cadastrar profissional</button>}/>
  <div className="grid" style={{gridTemplateColumns:'repeat(auto-fit,minmax(265px,1fr))',gap:15}}>{data.professionals.map(p=><article className="card" key={p.id} style={{padding:22}} data-testid={`card-professional-${p.id}`}><div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}><div className="avatar" style={{height:52,width:52,fontSize:15,background:p.color}}>{p.name.split(' ').map(w=>w[0]).slice(0,2).join('')}</div><div className="table-actions"><button className="small-icon" aria-label={`Editar ${p.name}`} onClick={()=>{setEditing(p);setOpen(true)}} data-testid={`button-edit-professional-${p.id}`}><Pencil/></button><button className="small-icon" aria-label={`Remover ${p.name}`} onClick={()=>erase(p)} data-testid={`button-delete-professional-${p.id}`}><Trash2/></button></div></div><h3 className="serif" style={{fontSize:20,margin:'18px 0 4px'}}>{p.name}</h3><div style={{fontSize:11,color:'#A95777',fontWeight:600}}>{p.role}</div><div style={{borderTop:'1px solid #F4EEEE',marginTop:18,paddingTop:13,fontSize:11,color:'#93838A',display:'grid',gap:9}}><div style={{display:'flex',gap:8,alignItems:'center'}}><Mail size={14}/>{p.email}</div><div style={{display:'flex',gap:8,alignItems:'center'}}><UserRound size={14}/>{p.phone}</div></div><div style={{fontSize:9,color:'#AE9DA3',marginTop:16}}>CADASTRO DE DEMONSTRAÇÃO</div></article>)}
  {!data.professionals.length&&<Empty title="Equipe ainda não cadastrada" text="Cadastre profissionais para organizar os atendimentos." icon={Stethoscope}/>}</div>
  {open&&<ProfessionalForm initial={editing} onClose={()=>setOpen(false)} onSave={save}/>}</>;
@@ -223,7 +241,7 @@ function ProfessionalForm({initial,onClose,onSave}){
 
 function SettingsPage(){
  const {notify}=useApp();
- const [clinic,setClinic]=useState(()=>{try{return JSON.parse(localStorage.getItem('atelier-clinic-settings'))||{name:'Atelier Pele',phone:'(11) 3021-8740',email:'contato@atelierpele.com',address:'Rua Harmonia, 418 · Vila Madalena, São Paulo'};}catch{return {name:'Atelier Pele',phone:'(11) 3021-8740',email:'contato@atelierpele.com',address:'Rua Harmonia, 418 · Vila Madalena, São Paulo'};}});
+ const [clinic,setClinic]=useState(()=>{const defaults={name:CLINIC_NAME,phone:'(11) 3021-8740',email:'contato@example.com',address:'Rua Harmonia, 418 · Vila Madalena, São Paulo'};try{const saved=JSON.parse(localStorage.getItem('atelier-clinic-settings'));if(!saved)return defaults;return {...defaults,...saved,name:saved.name==='Atelier Pele'||!saved.name?CLINIC_NAME:saved.name,email:saved.email==='contato@atelierpele.com'?'contato@example.com':saved.email||defaults.email};}catch{return defaults;}});
  const [hours,setHours]=useState(()=>{try{return JSON.parse(localStorage.getItem('atelier-business-hours'))||{seg:true,ter:true,qua:true,qui:true,sex:true,sab:true,dom:false};}catch{return {seg:true,ter:true,qua:true,qui:true,sex:true,sab:true,dom:false};}});
  useEffect(()=>localStorage.setItem('atelier-business-hours',JSON.stringify(hours)),[hours]);
  const saveClinic=e=>{e.preventDefault();localStorage.setItem('atelier-clinic-settings',JSON.stringify(clinic));notify('Dados da clínica salvos neste navegador.');};
@@ -247,7 +265,7 @@ function PublicBooking(){
    const appointment={id:Date.now(),client,service:booking.service,professional:booking.professional,date:booking.date,time:booking.time,status:'Pendente',price:chosenService?.price||0};
    setData(p=>({...p,clients:found?p.clients:[{id:Date.now()+1,name:client,phone:booking.phone,email:booking.email,visits:0,lastVisit:'',notes:''},...p.clients],appointments:[appointment,...p.appointments]}));setComplete(true);setError('');
  };
- return <div className="public-page"><header className="public-nav"><NavLink to="/" className="brand" style={{padding:0,textDecoration:'none',color:'inherit'}} data-testid="link-public-brand"><div className="brand-mark"><Flower2 size={21}/></div><div><div className="brand-name">atelier pele</div><div className="brand-sub">gestão estética</div></div></NavLink><span style={{fontSize:10,color:'#A9959D'}}>Agendamento online · demonstração</span></header>
+ return <div className="public-page"><header className="public-nav"><NavLink to="/" className="brand" style={{padding:0,textDecoration:'none',color:'inherit'}} data-testid="link-public-brand"><div className="brand-mark"><Flower2 size={21}/></div><div><div className="brand-name">{CLINIC_NAME}</div><div className="brand-sub">gestão estética</div></div></NavLink><span style={{fontSize:10,color:'#A9959D'}}>Agendamento online · demonstração</span></header>
  <main className="public-content"><div className="public-title"><div className="eyebrow">Um tempo para você</div><h1 className="serif">Agende seu cuidado</h1><p>Escolha o tratamento, o melhor horário e venha viver esse momento.</p></div>
  <div className="booking-layout"><section className="card booking-card">
  {!complete&&<><div className="step-list">{['Procedimento','Profissional','Data e horário','Seus dados'].map((label,i)=><div key={label} className={`step-item ${step===i+1?'active':''}`}><span className="step-num">{i+1<step?<Check size={12}/>:i+1}</span><span>{label}</span></div>)}</div>
