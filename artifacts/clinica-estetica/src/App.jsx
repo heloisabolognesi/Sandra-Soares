@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, createContext, useContext } from 'react';
+import { useEffect, useMemo, useState, createContext, useContext, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Activity, ArrowLeft, ArrowRight, Bell, CalendarDays, Check, CheckCircle2, ChevronDown,
@@ -6,6 +6,7 @@ import {
   LayoutDashboard, Link2Off, Mail, MoreHorizontal, Pencil, Plus, Search, Settings,
   ShieldCheck, Sparkles, Stethoscope, Trash2, UserRound, UserRoundPlus, Users, X
 } from 'lucide-react';
+const FinanceModule = lazy(() => import('./finance/FinanceModule'));
 
 const isoToday = () => {
   const d = new Date();
@@ -13,7 +14,16 @@ const isoToday = () => {
 };
 const CLINIC_NAME = 'Sandra Soares';
 const datePlus = (n) => { const d = new Date(); d.setDate(d.getDate()+n); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const dateInCurrentMonth = (daysAgo) => { const now = new Date(); const d = new Date(now.getFullYear(), now.getMonth(), Math.max(1, now.getDate()-daysAgo), 12); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const dateInMonth = (monthOffset, day) => { const d = new Date(); const target = new Date(d.getFullYear(), d.getMonth()+monthOffset, day, 12); return `${target.getFullYear()}-${String(target.getMonth()+1).padStart(2,'0')}-${String(target.getDate()).padStart(2,'0')}`; };
 const sandraClient = {id:'sandra-soares',name:'Sandra Soares',phone:'',email:'',birth:'',visits:0,lastVisit:'',notes:''};
+const historicalAppointments = [
+  {id:8,client:'Mariana Costa',service:'Limpeza de pele',professional:'Dra. Helena Duarte',date:dateInCurrentMonth(7),time:'11:00',status:'Concluída',price:180},
+  {id:9,client:'Isabela Martins',service:'Peeling facial',professional:'Dra. Helena Duarte',date:dateInCurrentMonth(6),time:'14:00',status:'Concluída',price:240},
+  {id:10,client:'Camila Nogueira',service:'Drenagem linfática',professional:'Bianca Ferreira',date:dateInCurrentMonth(5),time:'15:00',status:'Concluída',price:160},
+  {id:11,client:'Fernanda Alves',service:'Design de sobrancelhas',professional:'Lívia Monteiro',date:dateInMonth(-1,10),time:'10:00',status:'Concluída',price:85},
+  {id:12,client:'Letícia Ribeiro',service:'Massagem relaxante',professional:'Bianca Ferreira',date:dateInMonth(-1,20),time:'16:00',status:'Concluída',price:195},
+];
 const initialData = {
   clients: [
     {id:1,name:'Mariana Costa',phone:'(11) 98842-1067',email:'mariana.costa@email.com',birth:'1992-04-18',visits:8,lastVisit:datePlus(-8),notes:'Prefere horários no período da manhã.'},
@@ -43,7 +53,28 @@ const initialData = {
     {id:5,client:'Letícia Ribeiro',service:'Massagem relaxante',professional:'Bianca Ferreira',date:datePlus(1),time:'11:00',status:'Confirmada',price:195},
     {id:6,client:'Mariana Costa',service:'Peeling facial',professional:'Dra. Helena Duarte',date:datePlus(2),time:'14:00',status:'Pendente',price:240},
     {id:7,client:'Camila Nogueira',service:'Limpeza de pele',professional:'Dra. Helena Duarte',date:datePlus(3),time:'09:30',status:'Confirmada',price:180},
-  ]
+    ...historicalAppointments,
+  ],
+  finance: {
+    revenues: [
+      {id:1,description:'Limpeza de pele',client:'Mariana Costa',procedure:'Limpeza de pele',amount:180,date:dateInCurrentMonth(7),paymentMethod:'Pix',paymentStatus:'Recebido',appointmentId:8},
+      {id:2,description:'Peeling facial',client:'Isabela Martins',procedure:'Peeling facial',amount:240,date:dateInCurrentMonth(6),paymentMethod:'Cartão de crédito',paymentStatus:'Recebido',appointmentId:9},
+      {id:3,description:'Drenagem linfática',client:'Camila Nogueira',procedure:'Drenagem linfática',amount:160,date:dateInCurrentMonth(5),paymentMethod:'Pix',paymentStatus:'Pendente',appointmentId:10},
+      {id:4,description:'Design de sobrancelhas',client:'Fernanda Alves',procedure:'Design de sobrancelhas',amount:85,date:dateInMonth(-1,10),paymentMethod:'Dinheiro',paymentStatus:'Recebido',appointmentId:11},
+      {id:5,description:'Massagem relaxante',client:'Letícia Ribeiro',procedure:'Massagem relaxante',amount:195,date:dateInMonth(-1,20),paymentMethod:'Cartão de débito',paymentStatus:'Recebido',appointmentId:12},
+      {id:6,description:'Kit de cuidados',client:'Sandra Soares',procedure:'',amount:95,date:datePlus(-2),paymentMethod:'Pix',paymentStatus:'Recebido'},
+    ],
+    expenses: [
+      {id:1,name:'Aluguel da clínica',category:'Aluguel',amount:1800,date:datePlus(-1),paymentMethod:'Transferência',description:'Referente ao mês atual.'},
+      {id:2,name:'Reposição de produtos',category:'Produtos e materiais',amount:385,date:datePlus(-4),paymentMethod:'Pix',description:'Produtos para procedimentos faciais.'},
+      {id:3,name:'Manutenção de equipamentos',category:'Equipamentos',amount:260,date:datePlus(-8),paymentMethod:'Cartão de crédito',description:'Revisão preventiva.'},
+      {id:4,name:'Conta de energia',category:'Água e energia',amount:198,date:datePlus(-13),paymentMethod:'Pix',description:''},
+      {id:5,name:'Internet da clínica',category:'Internet',amount:119,date:dateInMonth(-1,9),paymentMethod:'Débito automático',description:''},
+      {id:6,name:'Divulgação local',category:'Marketing',amount:320,date:dateInMonth(-1,17),paymentMethod:'Cartão de crédito',description:'Campanha demonstrativa.'},
+      {id:7,name:'Apoio administrativo',category:'Funcionários',amount:950,date:dateInMonth(-1,23),paymentMethod:'Transferência',description:''},
+      {id:8,name:'Materiais de atendimento',category:'Produtos e materiais',amount:245,date:dateInMonth(-1,26),paymentMethod:'Pix',description:''},
+    ],
+  },
 };
 const AppContext = createContext(null);
 const useApp = () => useContext(AppContext);
@@ -56,6 +87,7 @@ const nav = [
   {to:'/clientes',label:'Clientes',icon:Users},
   {to:'/servicos',label:'Serviços',icon:Sparkles},
   {to:'/profissionais',label:'Profissionais',icon:Stethoscope},
+  {to:'/financeiro',label:'Financeiro',icon:CreditCard},
   {to:'/configuracoes',label:'Configurações',icon:Settings},
 ];
 
@@ -75,6 +107,15 @@ function useDemoData() {
         ...saved,
         clients: clients.some((client) => client.name === CLINIC_NAME) ? clients : [sandraClient,...clients],
         professionals,
+        appointments: Array.isArray(saved.appointments)
+          ? [...saved.appointments,...historicalAppointments.filter((sample) => !saved.appointments.some((appointment) => appointment.id === sample.id))]
+          : initialData.appointments,
+        finance: {
+          ...initialData.finance,
+          ...(saved.finance || {}),
+          revenues: Array.isArray(saved.finance?.revenues) ? saved.finance.revenues : initialData.finance.revenues,
+          expenses: Array.isArray(saved.finance?.expenses) ? saved.finance.expenses : initialData.finance.expenses,
+        },
       };
     } catch { return initialData; }
   });
@@ -89,11 +130,26 @@ function useDemoData() {
   return {data,setData,saveItem,removeItem,toast,notify};
 }
 
+function FinanceRoute({page}) {
+  const {data,setData,notify}=useApp();
+  return <Suspense fallback={<div className="card" role="status" aria-live="polite">Carregando financeiro…</div>}>
+    <FinanceModule
+      page={page}
+      finance={data.finance}
+      appointments={data.appointments}
+      clients={data.clients}
+      services={data.services}
+      onFinanceChange={(finance)=>setData((previous)=>({...previous,finance}))}
+      notify={notify}
+    />
+  </Suspense>;
+}
+
 function App(){
   const store = useDemoData();
   return <AppContext.Provider value={store}><BrowserRouter><Routes>
     <Route path="/agendar" element={<PublicBooking/>}/>
-    <Route path="/" element={<AdminShell/>}><Route index element={<Dashboard/>}/><Route path="agenda" element={<Agenda/>}/><Route path="clientes" element={<Clients/>}/><Route path="servicos" element={<Services/>}/><Route path="profissionais" element={<Professionals/>}/><Route path="configuracoes" element={<SettingsPage/>}/></Route>
+    <Route path="/" element={<AdminShell/>}><Route index element={<Dashboard/>}/><Route path="agenda" element={<Agenda/>}/><Route path="clientes" element={<Clients/>}/><Route path="servicos" element={<Services/>}/><Route path="profissionais" element={<Professionals/>}/><Route path="financeiro" element={<FinanceRoute page="dashboard"/>}/><Route path="financeiro/receitas" element={<FinanceRoute page="receitas"/>}/><Route path="financeiro/despesas" element={<FinanceRoute page="despesas"/>}/><Route path="financeiro/relatorios" element={<FinanceRoute page="relatorios"/>}/><Route path="configuracoes" element={<SettingsPage/>}/></Route>
     <Route path="*" element={<NotFound/>}/>
   </Routes>{store.toast&&<div className={`toast ${store.toast.error?'toast-error':''}`} role="status" data-testid="status-feedback">{store.toast.message}</div>}</BrowserRouter></AppContext.Provider>;
 }
@@ -101,7 +157,7 @@ function App(){
 function AdminShell(){
   const location=useLocation();
  const {notify}=useApp();
-  const current=nav.find(n=>n.to===location.pathname)?.label||CLINIC_NAME;
+  const current=nav.find(n=>n.to==='/'?location.pathname==='/':location.pathname===n.to||location.pathname.startsWith(`${n.to}/`))?.label||CLINIC_NAME;
   return <div className="app-shell">
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark"><Flower2 size={21}/></div><div><div className="brand-name">{CLINIC_NAME}</div><div className="brand-sub">gestão estética</div></div></div>
